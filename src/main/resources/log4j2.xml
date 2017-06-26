@@ -9,6 +9,9 @@
         <Logger name="com.cf" level="trace" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
+        <Logger name="de.koenig.poloniex" level="trace" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
         <Logger name="org.apache" level="info" additivity="false">
             <AppenderRef ref="Console"/>
             <Root level="error">

@@ -18,16 +18,15 @@ import ws.wamp.jawampa.WampClient;
 import ws.wamp.jawampa.WampClientBuilder;
 import ws.wamp.jawampa.transport.netty.NettyWampClientConnectorProvider;
 
-/**
- *
- * @author David
- */
-public class WSSClient implements AutoCloseable {
+public class EndlessAutoReconnectWSSClient implements AutoCloseable {
+
 	private final static Logger LOG = LogManager.getLogger();
 	private final WampClient wampClient;
 	private final Map<String, Action1<PubSubData>> subscriptions;
+	private boolean aborted;
+	private boolean wasConnectedBefore = false;
 
-	public WSSClient(String uri, String realm) throws ApplicationError, Exception {
+	public EndlessAutoReconnectWSSClient(String uri, String realm) throws ApplicationError, Exception {
 		this.subscriptions = new HashMap<>();
 		WampClientBuilder builder = new WampClientBuilder();
 		builder.withConnectorProvider(new NettyWampClientConnectorProvider()).withUri(uri).withRealm(realm)
@@ -44,34 +43,31 @@ public class WSSClient implements AutoCloseable {
 		this.subscriptions.put(feedName, feedEventHandler);
 	}
 
-	/***
-	 * 
-	 * @param runTimeInMillis
-	 *            The subscription time expressed in milliseconds. The minimum
-	 *            runtime is 1 minute.
-	 */
-	public void run(long runTimeInMillis) {
+	public void run() {
 		try {
 			wampClient.statusChanged().subscribe((WampClient.State newState) -> {
 				if (newState instanceof WampClient.ConnectedState) {
 					LOG.trace("Connected");
 
+					wasConnectedBefore = true;
 					for (Entry<String, Action1<PubSubData>> subscription : this.subscriptions.entrySet()) {
 						wampClient.makeSubscription(subscription.getKey()).subscribe(subscription.getValue(),
 								new PoloniexSubscriptionExceptionHandler(subscription.getKey()));
 					}
 				} else if (newState instanceof WampClient.DisconnectedState) {
-					LOG.trace("Disconnected");
+
+					if (wasConnectedBefore) {
+						LOG.trace("Disconnected - try to connect again");
+						wampClient.open();
+					}
 				} else if (newState instanceof WampClient.ConnectingState) {
 					LOG.trace("Connecting...");
 				}
 			});
 
 			wampClient.open();
-			long startTime = System.currentTimeMillis();
 
-			while (wampClient.getTerminationFuture().isDone() == false
-					&& (startTime + runTimeInMillis > System.currentTimeMillis())) {
+			while (wampClient.getTerminationFuture().isDone() == false && !aborted) {
 				TimeUnit.MINUTES.sleep(1);
 			}
 		} catch (Exception ex) {
@@ -81,6 +77,8 @@ public class WSSClient implements AutoCloseable {
 
 	@Override
 	public void close() throws Exception {
+		aborted = true;
 		wampClient.close().toBlocking().last();
 	}
+
 }

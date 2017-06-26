@@ -1,5 +1,7 @@
 package com.cf.data.model.poloniex;
 
+import java.math.BigDecimal;
+
 import com.google.gson.Gson;
 
 /**
@@ -9,15 +11,15 @@ import com.google.gson.Gson;
 public class PoloniexChartData
 {
     public final String date;
-    public final String high;
-    public final String low;
-    public final String open;
-    public final String close;
-    public final String volume;
-    public final String quoteVolume;
-    public final String weightedAverage;
+    public final BigDecimal high;
+    public final BigDecimal low;
+    public final BigDecimal open;
+    public final BigDecimal close;
+    public final BigDecimal volume;
+    public final BigDecimal quoteVolume;
+    public final BigDecimal weightedAverage;
 
-    public PoloniexChartData(String date, String high, String low, String open, String close, String volume, String quoteVolume, String weightedAverage)
+    public PoloniexChartData(String date, BigDecimal high, BigDecimal low, BigDecimal open, BigDecimal close, BigDecimal volume, BigDecimal quoteVolume, BigDecimal weightedAverage)
     {
         this.date = date;
         this.high = high;
